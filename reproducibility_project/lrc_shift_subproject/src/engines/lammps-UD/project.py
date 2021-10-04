@@ -190,7 +190,8 @@ def lammps_em_nvt(job):
     else:
         pass_shift = "no"
     modify_submit_scripts(in_script_name, job.id)
-    add_shake(in_script_name)
+    if job.sp.molecule == "waterSPCE":
+        add_shake(in_script_name)
     msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
@@ -209,7 +210,8 @@ def lammps_equil_npt(job):
         tstep = 2.0
     in_script_name = "in.equilibration"
     modify_submit_scripts(in_script_name, job.id)
-    add_shake(in_script_name)
+    if job.sp.molecule == "waterSPCE":
+        add_shake(in_script_name)
     r_cut = job.sp.r_cut * 10
     if job.sp.long_range_correction:
         pass_lrc = "yes"
@@ -237,7 +239,8 @@ def lammps_prod_npt(job):
         tstep = 2.0
     in_script_name = "in.production-npt"
     modify_submit_scripts(in_script_name, job.id)
-    add_shake(in_script_name)
+    if job.sp.molecule == "waterSPCE":
+        add_shake(in_script_name)
     r_cut = job.sp.r_cut * 10
     if job.sp.long_range_correction:
         pass_lrc = "yes"
@@ -265,6 +268,8 @@ def lammps_prod_nvt(job):
         tstep = 2.0
     in_script_name = "in.production-nvt"
     modify_submit_scripts(in_script_name, job.id)
+    if job.sp.molecule == "waterSPCE":
+        add_shake(in_script_name)
     r_cut = job.sp.r_cut * 10
     if job.sp.long_range_correction:
         pass_lrc = "yes"
