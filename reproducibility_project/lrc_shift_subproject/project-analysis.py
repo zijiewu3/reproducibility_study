@@ -174,7 +174,7 @@ def rdf_npt_analysis(job):
     from reproducibility_project.src.analysis.rdf import gsd_rdf
 
     # RDF
-    gsd_rdf(job, ensemble="npt")
+    gsd_rdf(job, filename="trajectory-npt.gsd", ensemble="npt")
 
 
 @Project.operation
@@ -186,7 +186,7 @@ def rdf_nvt_analysis(job):
     from reproducibility_project.src.analysis.rdf import gsd_rdf
 
     # RDF
-    gsd_rdf(job, ensemble="nvt")
+    gsd_rdf(job, filename="trajectory-nvt.gsd", ensemble="nvt")
 
 
 @Project.operation
