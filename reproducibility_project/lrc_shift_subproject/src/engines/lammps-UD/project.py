@@ -190,6 +190,7 @@ def lammps_em_nvt(job):
     else:
         pass_shift = "no"
     modify_submit_scripts(in_script_name, job.id)
+    add_shake(in_script_name)
     msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
@@ -208,6 +209,7 @@ def lammps_equil_npt(job):
         tstep = 2.0
     in_script_name = "in.equilibration"
     modify_submit_scripts(in_script_name, job.id)
+    add_shake(in_script_name)
     r_cut = job.sp.r_cut * 10
     if job.sp.long_range_correction:
         pass_lrc = "yes"
@@ -235,6 +237,7 @@ def lammps_prod_npt(job):
         tstep = 2.0
     in_script_name = "in.production-npt"
     modify_submit_scripts(in_script_name, job.id)
+    add_shake(in_script_name)
     r_cut = job.sp.r_cut * 10
     if job.sp.long_range_correction:
         pass_lrc = "yes"
@@ -303,11 +306,9 @@ def lammps_reformat_data(job):
     # convert units
     KCAL_TO_KJ = 4.184  # kcal to kj
     ATM_TO_MPA = 0.101325  # atm to mpa
-    GPCM3_TO_AMUPNM3 = 0.6023  # g/cm^3 to amu/nm^3
     df_in["pe"] = df_in["pe"] * KCAL_TO_KJ
     df_in["ke"] = df_in["ke"] * KCAL_TO_KJ
     df_in["press"] = df_in["press"] * ATM_TO_MPA
-    df_in["density"] = df_in["density"] * GPCM3_TO_AMUPNM3
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-npt.txt", header=True, index=False, sep=" ")
@@ -325,7 +326,6 @@ def lammps_reformat_data(job):
     df_in["pe"] = df_in["pe"] * KCAL_TO_KJ
     df_in["ke"] = df_in["ke"] * KCAL_TO_KJ
     df_in["press"] = df_in["press"] * ATM_TO_MPA
-    df_in["density"] = df_in["density"] * GPCM3_TO_AMUPNM3
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-nvt.txt", header=True, index=False, sep=" ")
@@ -349,6 +349,13 @@ def lammps_create_gsd(job):
     traj.save("trajectory-nvt.gsd")
 '''
 
+def add_shake(filename):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        lines[27] = "fix fix_shake all shake 0.0001 20 1000 b 1 a 1\n"
+    with open(filename, "w") as f:
+        f.writelines(lines)
+    return
 
 def modify_submit_scripts(filename, jobid, cores=8):
     """Modify the submission scripts to include the job and simulation type in the header."""

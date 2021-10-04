@@ -23,6 +23,11 @@ variable psample equal ${P}/101.325 #kPa to atm job.sp.pressure
 velocity all create 140.0 ${seed}+1 #temperature in kelvin
 # ________________________________________________________________________________________
 
+
+
+
+
+
 # Minimize energy
 minimize 1e-4 1e-4 1000 1000
 fix integrator all nve/limit 0.1
