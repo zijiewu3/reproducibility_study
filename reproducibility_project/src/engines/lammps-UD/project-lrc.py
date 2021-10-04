@@ -23,28 +23,28 @@ class Project(flow.FlowProject):
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_created_box(job):
     """Check if the lammps simulation box has been created for the job."""
     return job.isfile("box.lammps") and job.isfile("box.json")
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_copy_files(job):
     """Check if the submission scripts have been copied over for the job."""
-    return job.isfile("submit.pbs") and job.isfile("in.minimize")
+    return job.isfile("submit.slurm") and job.isfile("in.minimize")
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_minimized_equilibrated_nvt(job):
     """Check if the lammps minimization step has run for the job."""
     return job.isfile("minimized.restart-0")
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @flow.with_job
 def lammps_equilibrated_npt(job):
     """Check if the lammps equilibration step has run and passed is_equilibrated for the job."""
@@ -80,14 +80,14 @@ def lammps_equilibrated_npt(job):
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_production_npt(job):
     """Check if the lammps production step has run for the job."""
     return job.isfile("production-npt.restart")
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_production_nvt(job):
     """Check if the lammps nvt production step has run for the job."""
     return job.isfile("production-nvt.restart")
@@ -97,14 +97,14 @@ def lammps_production_nvt(job):
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_reformatted_data(job):
     """Check if lammps has output density information for the job."""
     return job.isfile("log-npt.txt") and job.isfile("log-nvt.txt")
 
 
 @Project.label
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_created_gsd(job):
     """Check if the mdtraj has converted the production to a gsd trajectory for the job."""
     return job.isfile("trajectory-npt.gsd") and job.isfile("trajectory-nvt.gsd")
@@ -115,7 +115,7 @@ def lammps_created_gsd(job):
 
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.post(lammps_created_box)
 @flow.with_job
 def built_lammps(job):
@@ -154,21 +154,21 @@ def built_lammps(job):
 
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_created_box)
 @Project.post(lammps_copy_files)
 @flow.with_job
 @flow.cmd
 def lammps_cp_files(job):
     """Copy over run files for lammps and the PBS scheduler."""
-    lmps_submit_path = "../../src/engine_input/lammps-VU/submit.pbs"
-    lmps_run_path = "../../src/engine_input/lammps-VU/in.*"
+    lmps_submit_path = "../../src/engine_input/lammps-UD/submit.slurm"
+    lmps_run_path = "../../src/engine_input/lammps-UD/in.*"
     msg = f"cp {lmps_submit_path} {lmps_run_path} ./"
     return msg
 
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_copy_files)
 @Project.post(lammps_minimized_equilibrated_nvt)
 @flow.with_job
@@ -190,12 +190,12 @@ def lammps_em_nvt(job):
     else:
         pass_shift = "no"
     modify_submit_scripts(in_script_name, job.id)
-    msg = f"qsub -v 'infile={in_script_name}, seed={job.sp.replica+1}, T={job.sp.temperature}, P={job.sp.pressure}, rcut={r_cut}, tstep={tstep} lrc={pass_lrc} shift={pass_shift}' submit.pbs"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_minimized_equilibrated_nvt)
 @Project.post(lammps_equilibrated_npt)
 @flow.with_job
@@ -217,12 +217,12 @@ def lammps_equil_npt(job):
         pass_shift = "yes"
     else:
         pass_shift = "no"
-    msg = f"qsub -v 'infile={in_script_name}, seed={job.sp.replica+1}, T={job.sp.temperature}, P={job.sp.pressure}, rcut={r_cut}, tstep={tstep}' submit.pbs"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_equilibrated_npt)
 @Project.post(lammps_production_npt)
 @flow.with_job
@@ -244,12 +244,12 @@ def lammps_prod_npt(job):
         pass_shift = "yes"
     else:
         pass_shift = "no"
-    msg = f"qsub -v 'infile={in_script_name}, seed={job.sp.replica+1}, T={job.sp.temperature}, P={job.sp.pressure}, rcut={r_cut}, tstep={tstep}' submit.pbs"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
 '''
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_production_npt)
 @Project.post(lammps_production_nvt)
 @flow.with_job
@@ -263,13 +263,21 @@ def lammps_prod_nvt(job):
     in_script_name = "in.production-nvt"
     modify_submit_scripts(in_script_name, job.id)
     r_cut = job.sp.r_cut * 10
-    msg = f"qsub -v 'infile={in_script_name}, seed={job.sp.replica+1}, T={job.sp.temperature}, P={job.sp.pressure}, rcut={r_cut}, tstep={tstep}' submit.pbs"
+    if job.sp.long_range_correction:
+        pass_lrc = "yes"
+    else:
+        pass_lrc = "no"
+    if job.sp.cutoff_style == "shift":
+        pass_shift = "yes"
+    else:
+        pass_shift = "no"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
 
     return msg
 '''
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_production_npt)
 @Project.post(lammps_reformatted_data)
 @flow.with_job
@@ -303,7 +311,7 @@ def lammps_reformat_data(job):
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-npt.txt", header=True, index=False, sep=" ")
-
+'''
     df_in = pd.read_csv(job.ws + "/prlog-nvt.txt", delimiter=" ", header=0)
     attr_list = ["step", "pe", "ke", "press", "temp", "density"]
     new_titles_list = [
@@ -321,10 +329,10 @@ def lammps_reformat_data(job):
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-nvt.txt", header=True, index=False, sep=" ")
-
+'''
 
 @Project.operation
-@Project.pre(lambda j: j.sp.engine == "lammps-VU")
+@Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_reformatted_data)
 @Project.post(lammps_created_gsd)
 @flow.with_job
@@ -333,19 +341,21 @@ def lammps_create_gsd(job):
     # Create rdf data from the production run
     import mdtraj as md
 
-    traj = md.load("prod-npt.xtc", top="box.gro")
+    traj = md.load("prod-npt.dcd", top="box.gro")
     traj.save("trajectory-npt.gsd")
-    traj = md.load("prod-nvt.xtc", top="box.gro")
+'''
+    traj = md.load("prod-nvt.dcd", top="box.gro")
     traj.save("trajectory-nvt.gsd")
+'''
     return
 
 
 def modify_submit_scripts(filename, jobid, cores=8):
     """Modify the submission scripts to include the job and simulation type in the header."""
-    with open("submit.pbs", "r") as f:
+    with open("submit.slurm", "r") as f:
         lines = f.readlines()
-        lines[1] = "#PBS -N {}-{}\n".format(filename[3:], jobid[0:4])
-    with open("submit.pbs", "w") as f:
+        lines[1] = "#SBATCH --job-name={}-{}\n".format(filename[3:], jobid[0:4])
+    with open("submit.slurm", "w") as f:
         f.writelines(lines)
     return
 

@@ -100,14 +100,14 @@ def lammps_production_nvt(job):
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_reformatted_data(job):
     """Check if lammps has output density information for the job."""
-    return job.isfile("log-npt.txt") and job.isfile("log-nvt.txt")
+    return job.isfile("log-npt.txt")
 
 
 @Project.label
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_created_gsd(job):
     """Check if the mdtraj has converted the production to a gsd trajectory for the job."""
-    return job.isfile("trajectory-npt.gsd") and job.isfile("trajectory-nvt.gsd")
+    return job.isfile("trajectory-npt.gsd")
 
 
 # _____________________________________________________________________
@@ -190,8 +190,7 @@ def lammps_em_nvt(job):
     else:
         pass_shift = "no"
     modify_submit_scripts(in_script_name, job.id)
-    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1}
-    {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
 
@@ -210,8 +209,15 @@ def lammps_equil_npt(job):
     in_script_name = "in.equilibration"
     modify_submit_scripts(in_script_name, job.id)
     r_cut = job.sp.r_cut * 10
-    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1}
-    {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
+    if job.sp.long_range_correction:
+        pass_lrc = "yes"
+    else:
+        pass_lrc = "no"
+    if job.sp.cutoff_style == "shift":
+        pass_shift = "yes"
+    else:
+        pass_shift = "no"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
 
@@ -230,11 +236,18 @@ def lammps_prod_npt(job):
     in_script_name = "in.production-npt"
     modify_submit_scripts(in_script_name, job.id)
     r_cut = job.sp.r_cut * 10
-    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1}
-    {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
+    if job.sp.long_range_correction:
+        pass_lrc = "yes"
+    else:
+        pass_lrc = "no"
+    if job.sp.cutoff_style == "shift":
+        pass_shift = "yes"
+    else:
+        pass_shift = "no"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
-
+'''
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
 @Project.pre(lammps_production_npt)
@@ -250,15 +263,22 @@ def lammps_prod_nvt(job):
     in_script_name = "in.production-nvt"
     modify_submit_scripts(in_script_name, job.id)
     r_cut = job.sp.r_cut * 10
-    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1}
-    {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
+    if job.sp.long_range_correction:
+        pass_lrc = "yes"
+    else:
+        pass_lrc = "no"
+    if job.sp.cutoff_style == "shift":
+        pass_shift = "yes"
+    else:
+        pass_shift = "no"
+    msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
 
     return msg
-
+'''
 
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
-@Project.pre(lammps_production_nvt)
+@Project.pre(lammps_production_npt)
 @Project.post(lammps_reformatted_data)
 @flow.with_job
 def lammps_reformat_data(job):
@@ -291,7 +311,7 @@ def lammps_reformat_data(job):
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-npt.txt", header=True, index=False, sep=" ")
-
+'''
     df_in = pd.read_csv(job.ws + "/prlog-nvt.txt", delimiter=" ", header=0)
     attr_list = ["step", "pe", "ke", "press", "temp", "density"]
     new_titles_list = [
@@ -309,7 +329,7 @@ def lammps_reformat_data(job):
     df_out = df_in[attr_list]
     df_out.columns = new_titles_list
     df_out.to_csv("log-nvt.txt", header=True, index=False, sep=" ")
-
+'''
 
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
@@ -323,9 +343,11 @@ def lammps_create_gsd(job):
 
     traj = md.load("prod-npt.dcd", top="box.gro")
     traj.save("trajectory-npt.gsd")
+    return
+'''
     traj = md.load("prod-nvt.dcd", top="box.gro")
     traj.save("trajectory-nvt.gsd")
-    return
+'''
 
 
 def modify_submit_scripts(filename, jobid, cores=8):

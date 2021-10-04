@@ -2,7 +2,7 @@
 #SBATCH --job-name="rpd-uamethane"
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=36
-#SBATCH --time=11:59:59
+#SBATCH --time=00:59:59
 #SBATCH --export=ALL
 #SBATCH --mail-user=zijiewu@udel.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
