@@ -67,7 +67,7 @@ def lammps_equilibrated_npt(job):
             counter = step
             latest_eqdata = file
     if latest_eqdata:
-        data = np.genfromtxt(latest_eqdata.name, skip_header=1)
+        data = np.genfromtxt(latest_eqdata.name)
         check_equil = [
             is_equilibrated(data[:, 1])[0],
             is_equilibrated(data[:, 2])[0],
@@ -76,14 +76,14 @@ def lammps_equilibrated_npt(job):
         ]
     else:
         check_equil = False
-    return job.isfile("equilibrated-npt.restart") and np.all(check_equil)
+    return job.isfile("equilibrated-npt.restart-0") and np.all(check_equil)
 
 
 @Project.label
 @Project.pre(lambda j: j.sp.engine == "lammps-UD")
 def lammps_production_npt(job):
     """Check if the lammps production step has run for the job."""
-    return job.isfile("production-npt.restart")
+    return job.isfile("production-npt.restart-0")
 
 
 @Project.label
@@ -191,7 +191,7 @@ def lammps_em_nvt(job):
         pass_shift = "no"
     modify_submit_scripts(in_script_name, job.id)
     if job.sp.molecule == "waterSPCE":
-        add_shake(in_script_name)
+        remove_shake(in_script_name)
     msg = f"sbatch submit.slurm {in_script_name} {job.sp.replica+1} {job.sp.temperature} {job.sp.pressure} {r_cut} {tstep} {pass_lrc} {pass_shift}"
     return msg
 
@@ -358,6 +358,14 @@ def add_shake(filename):
     with open(filename, "r") as f:
         lines = f.readlines()
         lines[27] = "fix fix_shake all shake 0.0001 20 1000 b 1 a 1\n"
+    with open(filename, "w") as f:
+        f.writelines(lines)
+    return
+
+def remove_shake(filename):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        lines[27] = "\n"
     with open(filename, "w") as f:
         f.writelines(lines)
     return

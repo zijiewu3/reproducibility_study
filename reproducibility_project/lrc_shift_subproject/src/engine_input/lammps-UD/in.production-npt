@@ -9,7 +9,7 @@ pair_style     lj/cut/coul/cut ${rcut} # read in from job.sp.r_cut
 bond_style  none
 angle_style none
 dihedral_style  none
-read_restart equilibrated-npt.restart
+read_restart equilibrated-npt.restart-*
 
 pair_modify shift no  #TODO: Look to make sure this shift is okay
 
@@ -37,11 +37,12 @@ variable p equal pe
 variable k equal ke
 variable d equal density
 variable filename string "prlog-npt.txt"
-fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" file ${filename} title "step temp press etotal pe ke density"
+fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" append ${filename} title "#step temp press etotal pe ke density"
 dump traj1 all dcd 10000 prod-npt.dcd
 fix integrator all npt temp ${tsample} ${tsample} 100.0 iso ${psample} ${psample} 1000.0 pchain 10
 fix zeromom all momentum 100 linear 1 1 1 rescale
-run ${runtime}
+restart 5000 equilibrated-npt.restart-0 equilibrated-npt.restart-1
+run upto ${runtime}
 unfix integrator
-write_restart production-npt.restart
 undump traj1
+write_restart production-npt.restart-0

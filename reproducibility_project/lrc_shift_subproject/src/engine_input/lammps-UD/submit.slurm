@@ -6,7 +6,7 @@
 #SBATCH --export=ALL
 #SBATCH --mail-user=zijiewu@udel.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --requeue
+# SBATCH --requeue
 # SBATCH --partition=_workgroup_
 #SBATCH --mem=8G
 
