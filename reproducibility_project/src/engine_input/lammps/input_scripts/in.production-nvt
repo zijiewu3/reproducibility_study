@@ -24,6 +24,10 @@ variable tsample equal ${T} #kelvin, modified by job.sp.temperature
 variable psample equal ${P}/101.325 #kPa to atm modified by job.sp.pressure
 # ________________________________________________________________________________________
 
+
+
+
+
 # Production
 variable startstep equal step
 variable t equal temp
@@ -34,7 +38,7 @@ variable k equal ke
 variable d equal density
 variable filename string "prlog-nvt.txt"
 fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" file ${filename} title "step temp press etotal pe ke density"
-dump traj1 all xtc 10000 prod-nvt.xtc
+dump traj1 all dcd 10000 prod-nvt.dcd
 fix integrator all nvt temp ${tsample} ${tsample} 100.0
 fix zeromom all momentum 100 linear 1 1 1 rescale
 run 3000000
