@@ -6,17 +6,17 @@ atom_style      full
 
 # Assume ff info is included in data file
 pair_style     lj/cut/coul/cut ${rcut} # read in from job.sp.r_cut
-bond_style  none
-angle_style none
-dihedral_style  none
-read_restart production-npt.restart
-
-pair_modify shift no  #TODO: Look to make sure this shift is okay
-
+bond_style  harmonic
+angle_style harmonic
+dihedral_style  opls
+read_restart production-npt.restart-0
+#fix pppm
+pair_modify shift ${pass_shift} tail ${pass_lrc}  #TODO: Look to make sure this shift is okay
+#fix shake
 neighbor        2.5 bin #skin cutoff
 
 timestep ${tstep}
-variable runtime equal 5e6/dt
+variable runtime equal 5e6/${tstep}
 thermo 1000
 thermo_style custom step temp press pe epair emol ke etotal density
 
@@ -37,11 +37,13 @@ variable p equal pe
 variable k equal ke
 variable d equal density
 variable filename string "prlog-nvt.txt"
-fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" file ${filename} title "step temp press etotal pe ke density"
+fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" append ${filename} title "#step temp press etotal pe ke density"
 dump traj1 all dcd 10000 prod-nvt.dcd
 fix integrator all nvt temp ${tsample} ${tsample} 100.0
-fix zeromom all momentum 100 linear 1 1 1 rescale
-run 3000000
+restart 5000 production-npt.restart-0 production-npt.restart-1
+run ${runtime} upto
 unfix integrator
-write_restart production-nvt.restart
 undump traj1
+reset_timestep 0
+write_restart production-nvt.restart-0
+write_restart production-npt.restart-1

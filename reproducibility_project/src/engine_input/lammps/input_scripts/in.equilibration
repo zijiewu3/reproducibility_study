@@ -11,12 +11,12 @@ angle_style harmonic
 dihedral_style  opls
 read_restart minimized.restart-*
 #fix pppm
-pair_modify shift ${tshift} tail ${tlrc}
+pair_modify shift ${pass_shift} tail ${pass_lrc}
 #fix shake
 neighbor        2.5 bin #skin cutoff
 
 timestep ${tstep}
-thermo 1000
+thermo 2000
 thermo_style custom step temp press pe epair emol ke etotal density
 
 variable tsample equal ${T} #kelvin modify from job.sp.temperature
@@ -40,6 +40,8 @@ variable filename string eqlog0.txt
 fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" append ${filename} title "#step temp press etotal pe ke density"
 fix integrator all npt temp ${tsample} ${tsample} 100.0 iso ${psample} ${psample} 1000.0 pchain 10
 restart 2500 minimized.restart-0 minimized.restart-1
-run upto 1000000
+run 1000000 upto
 unfix integrator
+reset_timestep 0
 write_restart equilibrated-npt.restart-0
+write_restart minimized.restart-1

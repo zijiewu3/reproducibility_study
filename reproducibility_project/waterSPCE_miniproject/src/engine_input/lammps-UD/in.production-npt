@@ -1,0 +1,49 @@
+# Lammps script to read in mBuild topologies and perform energy minimization
+# Initialization
+units           real
+boundary        p p p
+atom_style      full
+
+# Assume ff info is included in data file
+pair_style     lj/cut/coul/cut ${rcut} # read in from job.sp.r_cut
+bond_style  none
+angle_style none
+dihedral_style  none
+read_restart equilibrated-npt.restart-*
+
+pair_modify shift no  #TODO: Look to make sure this shift is okay
+
+neighbor        2.5 bin #skin cutoff
+
+timestep ${tstep}
+variable runtime equal 5e6/dt
+thermo 20000
+thermo_style custom step temp press pe epair emol ke etotal density
+
+variable tsample equal ${T} #kelvin, modified by job.sp.temperature
+variable psample equal ${P}/101.325 #kPa to atm modified by job.sp.pressure
+# ________________________________________________________________________________________
+
+
+
+
+
+# Production
+variable startstep equal step
+variable t equal temp
+variable pressure equal press
+variable e equal etotal
+variable p equal pe
+variable k equal ke
+variable d equal density
+variable filename string "prlog-npt.txt"
+fix output_data all print 20000 "${startstep} ${t} ${pressure} $e $p $k $d" append ${filename} title "#step temp press etotal pe ke density"
+dump traj1 all dcd 20000 prod-npt.dcd
+dump_modify traj1 append yes
+fix integrator all npt temp ${tsample} ${tsample} 100.0 iso ${psample} ${psample} ${pdamp} pchain 10
+fix zeromom all momentum 100 linear 1 1 1 rescale
+restart 5000 equilibrated-npt.restart-1 equilibrated-npt.restart-2
+run ${runtime} upto
+unfix integrator
+undump traj1
+write_restart production-npt.restart-0

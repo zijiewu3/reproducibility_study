@@ -11,12 +11,12 @@ angle_style harmonic
 dihedral_style  opls
 read_restart equilibrated-npt.restart-*
 #fix pppm
-pair_modify shift ${tshift} tail ${tlrc}  #TODO: Look to make sure this shift is okay
+pair_modify shift ${pass_shift} tail ${pass_lrc}  #TODO: Look to make sure this shift is okay
 #fix shake
 neighbor        2.5 bin #skin cutoff
 
 timestep ${tstep}
-variable runtime equal 5e6/dt
+variable runtime equal 5e6/${tstep}
 thermo 1000
 thermo_style custom step temp press pe epair emol ke etotal density
 
@@ -41,7 +41,9 @@ fix output_data all print 1000 "${startstep} ${t} ${pressure} $e $p $k $d" appen
 dump traj1 all dcd 10000 prod-npt.dcd
 fix integrator all npt temp ${tsample} ${tsample} 100.0 iso ${psample} ${psample} 1000.0 pchain 10
 restart 5000 equilibrated-npt.restart-0 equilibrated-npt.restart-1
-run upto ${runtime}
+run ${runtime} upto
 unfix integrator
 undump traj1
+reset_timestep 0 
 write_restart production-npt.restart-0
+write_restart equilibrated-npt.restart-1
