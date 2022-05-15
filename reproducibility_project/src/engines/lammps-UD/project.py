@@ -6,7 +6,7 @@ import sys
 import flow
 import numpy as np
 from flow import environments
-
+from enforce_rigid import enforce_rigid
 
 class Project(flow.FlowProject):
     """Subclass of FlowProject to provide custom methods and attributes."""
@@ -188,6 +188,12 @@ def lammps_em_nvt(job):
         add_pppm(in_script_name,12)
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
+    if job.sp.molecule == 'pentaneUA':
+        enforce_rigid(job,5)
+    if job.sp.molecule == 'benzeneUA':
+        modify_engine_scripts(in_script_name,16,'change_box all ortho\n')
+        enforce_rigid(job,6)
+
     r_cut = job.sp.r_cut * 10
     modify_submit_scripts(in_script_name, job.id)
     pass_lrc = "yes"
@@ -210,13 +216,14 @@ def lammps_equil_npt(job):
         tstep = 2.0
     in_script_name = "in.equilibration"
     modify_submit_scripts(in_script_name, job.id)
-    if job.sp.molecule in ["waterSPCE"]:
-        add_shake(in_script_name,14)        
     if job.sp.molecule in ["waterSPCE","ethanolAA"]:
+        add_shake(in_script_name,14)        
         add_pppm(in_script_name,12)
         modify_engine_scripts(in_script_name,7,'pair_style lj/cut/coul/long ${rcut}\n')
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
+    if job.sp.molecule in ["benzeneUA"]:
+        add_rigid_npt(in_script_name,40)
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
@@ -238,13 +245,14 @@ def lammps_prod_npt(job):
         tstep = 2.0
     in_script_name = "in.production-npt"
     modify_submit_scripts(in_script_name, job.id)
-    if job.sp.molecule in ["waterSPCE"]:
-        add_shake(in_script_name,14)        
     if job.sp.molecule in ["waterSPCE","ethanolAA"]:
+        add_shake(in_script_name,14)        
         add_pppm(in_script_name,12)
         modify_engine_scripts(in_script_name,7,'pair_style lj/cut/coul/long ${rcut}\n')
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
+    if job.sp.molecule in ["benzeneUA"]:
+        add_rigid_npt(in_script_name,41)
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
@@ -266,13 +274,14 @@ def lammps_prod_nvt(job):
         tstep = 2.0
     in_script_name = "in.production-nvt"
     modify_submit_scripts(in_script_name, job.id)
-    if job.sp.molecule in ["waterSPCE"]:
-        add_shake(in_script_name,14)        
     if job.sp.molecule in ["waterSPCE","ethanolAA"]:
+        add_shake(in_script_name,14)        
         add_pppm(in_script_name,12)
         modify_engine_scripts(in_script_name,7,'pair_style lj/cut/coul/long ${rcut}\n')
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
+    if job.sp.molecule in ["pentaneUA", "benzeneUA"]:
+        add_rigid_nvt(in_script_name,41)
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
@@ -359,6 +368,31 @@ def add_pppm(filename,ln):
     with open(filename, "r") as f:
         lines = f.readlines()
         lines[ln] = "kspace_style pppm 0.00001\n"
+    with open(filename, "w") as f:
+        f.writelines(lines)
+    return
+
+def add_rigid(filename,ln):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        lines[ln] = "fix rigidity all rigid/small molecule\n"
+    with open(filename, "w") as f:
+        f.writelines(lines)
+    return
+
+
+def add_rigid_npt(filename,ln):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        lines[ln] = "fix integrator all rigid/npt/small molecule temp ${tsample} ${tsample} 100.0 iso ${psample} ${psample} 1000.0 pchain 10\n"
+    with open(filename, "w") as f:
+        f.writelines(lines)
+    return
+
+def add_rigid_nvt(filename,ln):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+        lines[ln] = "fix integrator all rigid/nvt/small molecule temp ${tsample} ${tsample} 100.0\n"
     with open(filename, "w") as f:
         f.writelines(lines)
     return
