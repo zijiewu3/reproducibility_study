@@ -53,7 +53,7 @@ def init_job(job):
 
     # Create a Compound and save to gro and top files
     system = construct_system(job.sp)
-    system[0].save(filename="init.gro", overwrite=True)
+    system[0].save(filename="init.gro", precision=8, overwrite=True)
     ff = load_ff(job.sp.forcefield_name)
     param_system = ff.apply(system[0])
     param_system.save(
@@ -63,6 +63,7 @@ def init_job(job):
 
     # Modify mdp files according to job statepoint parameters
     cutoff_styles = {"hard": "None", "shift": "Potential-shift"}
+    lrcs = {"None": "no", "energy_pressure": "EnerPres"}
 
     pressure = job.sp.pressure * u.kPa
     mdp_abs_path = os.path.dirname(os.path.abspath(mdp.__file__))
@@ -70,30 +71,41 @@ def init_job(job):
         "em": {
             "fname": "em.mdp",
             "template": f"{mdp_abs_path}/em_template.mdp.jinja",
+            "p3m-template": f"{mdp_abs_path}/em_template_p3m.mdp.jinja",
             "water-template": f"{mdp_abs_path}/em_template_water.mdp.jinja",
+            "bconstraints-template": f"{mdp_abs_path}/em_template_constraints.mdp.jinja",
+            "rigid-template": f"{mdp_abs_path}/em_template_rigid.mdp.jinja",
             "data": {
                 "r_cut": job.sp.r_cut,
                 "cutoff_style": cutoff_styles[job.sp.cutoff_style],
                 "temp": job.sp.temperature,
                 "replica": job.sp.replica,
+                "lrc": lrcs[job.sp.long_range_correction],
             },
         },
         "nvt": {
             "fname": "nvt.mdp",
             "template": f"{mdp_abs_path}/nvt_template.mdp.jinja",
+            "p3m-template": f"{mdp_abs_path}/nvt_template_p3m.mdp.jinja",
             "water-template": f"{mdp_abs_path}/nvt_template_water.mdp.jinja",
+            "bconstraints-template": f"{mdp_abs_path}/nvt_template_constraints.mdp.jinja",
+            "rigid-template": f"{mdp_abs_path}/nvt_template_rigid.mdp.jinja",
             "data": {
-                "nsteps": 2500000,
-                "dt": 0.002,
+                "nsteps": 5000000,
+                "dt": 0.001,
                 "temp": job.sp.temperature,
                 "r_cut": job.sp.r_cut,
                 "cutoff_style": cutoff_styles[job.sp.cutoff_style],
+                "lrc": lrcs[job.sp.long_range_correction],
             },
         },
         "npt_prod": {
             "fname": "npt_prod.mdp",
             "template": f"{mdp_abs_path}/npt_template.mdp.jinja",
+            "p3m-template": f"{mdp_abs_path}/npt_template_p3m.mdp.jinja",
             "water-template": f"{mdp_abs_path}/npt_template_water.mdp.jinja",
+            "bconstraints-template": f"{mdp_abs_path}/npt_template_constraints.mdp.jinja",
+            "rigid-template": f"{mdp_abs_path}/npt_template_rigid.mdp.jinja",
             "data": {
                 "nsteps": 5000000,
                 "dt": 0.001,
@@ -101,18 +113,23 @@ def init_job(job):
                 "refp": pressure.to_value("bar"),
                 "r_cut": job.sp.r_cut,
                 "cutoff_style": cutoff_styles[job.sp.cutoff_style],
+                "lrc": lrcs[job.sp.long_range_correction],
             },
         },
         "nvt_prod": {
             "fname": "nvt_prod.mdp",
             "template": f"{mdp_abs_path}/nvt_template.mdp.jinja",
+            "p3m-template": f"{mdp_abs_path}/nvt_template_p3m.mdp.jinja",
             "water-template": f"{mdp_abs_path}/nvt_template_water.mdp.jinja",
+            "bconstraints-template": f"{mdp_abs_path}/em_template_constraints.mdp.jinja",
+            "rigid-template": f"{mdp_abs_path}/em_template_rigid.mdp.jinja",
             "data": {
                 "nsteps": 5000000,
                 "dt": 0.001,
                 "temp": job.sp.temperature,
                 "r_cut": job.sp.r_cut,
                 "cutoff_style": cutoff_styles[job.sp.cutoff_style],
+                "lrc": lrcs[job.sp.long_range_correction],
             },
         },
     }
@@ -122,6 +139,27 @@ def init_job(job):
             _setup_mdp(
                 fname=mdp["fname"],
                 template=mdp["water-template"],
+                data=mdp["data"],
+                overwrite=True,
+            )
+        elif "constrain" in job.sp.molecule:
+            _setup_mdp(
+                fname=mdp["fname"],
+                template=mdp["bconstraints-template"],
+                data=mdp["data"],
+                overwrite=True,
+            )
+        elif job.sp.molecule == "benzeneUA":
+            _setup_mdp(
+                fname=mdp["fname"],
+                template=mdp["rigid-template"],
+                data=mdp["data"],
+                overwrite=True,
+            )
+        elif job.sp.molecule == "ethanolAA":
+            _setup_mdp(
+                fname=mdp["fname"],
+                template=mdp["p3m-template"],
                 data=mdp["data"],
                 overwrite=True,
             )
@@ -180,8 +218,10 @@ def gmx_npt_prod(job):
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "gromacs")
 @Project.pre(lambda j: j.isfile("npt_prod.gro"))
-@Project.pre(lambda j: not equil_status(j, "npt_prod", "Potential"))
-@Project.pre(lambda j: not equil_status(j, "npt_prod", "Volume"))
+@Project.pre(
+    lambda j: not equil_status(j, "npt_prod", "Potential")
+    or not equil_status(j, "npt_prod", "Volume")
+)
 @Project.post(lambda j: equil_status(j, "npt_prod", "Potential"))
 @Project.post(lambda j: equil_status(j, "npt_prod", "Volume"))
 @flow.with_job
@@ -197,6 +237,8 @@ def extend_gmx_npt_prod(job):
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "gromacs")
 @Project.pre(lambda j: j.isfile("npt_prod.gro"))
+@Project.pre(lambda j: equil_status(j, "npt_prod", "Potential"))
+@Project.pre(lambda j: equil_status(j, "npt_prod", "Volume"))
 @Project.post(lambda j: j.isfile("nvt_prod.gro"))
 @flow.with_job
 @flow.cmd
@@ -211,8 +253,10 @@ def gmx_nvt_prod(job):
 @Project.operation
 @Project.pre(lambda j: j.sp.engine == "gromacs")
 @Project.pre(lambda j: j.isfile("nvt_prod.gro"))
-@Project.pre(lambda j: not equil_status(j, "nvt_prod", "Potential"))
-@Project.pre(lambda j: not equil_status(j, "nvt_prod", "Pressure"))
+@Project.pre(
+    lambda j: not equil_status(j, "nvt_prod", "Potential")
+    or not equil_status(j, "nvt_prod", "Pressure")
+)
 @Project.post(lambda j: equil_status(j, "nvt_prod", "Potential"))
 @Project.post(lambda j: equil_status(j, "nvt_prod", "Pressure"))
 @flow.with_job
@@ -230,18 +274,21 @@ def extend_gmx_nvt_prod_prod(job):
 @Project.pre(lambda j: j.isfile("npt_prod.gro"))
 @Project.pre(lambda j: equil_status(j, "npt_prod", "Potential"))
 @Project.pre(lambda j: equil_status(j, "npt_prod", "Volume"))
+@Project.post(lambda j: j.isfile("log-npt.txt"))
+@Project.post(lambda j: j.isfile("trajectory-npt.gsd"))
 @flow.with_job
 def sample_npt_properties(job):
     """Sample properties of interest from npt edr."""
+    import mdtraj
     import pandas as pd
 
     from reproducibility_project.src.analysis.sampler import (
+        get_subsampled_values,
         sample_job,
-        write_subsampled_values,
     )
 
     p = pathlib.Path(job.workspace())
-    data = panedr.edr_to_df(f"{str(p.absolute())}/npt.edr")
+    data = panedr.edr_to_df(f"{str(p.absolute())}/npt_prod.edr")
     # Properties of interest
     poi = {
         "Potential": "potential_energy",
@@ -261,12 +308,22 @@ def sample_npt_properties(job):
         value=[10000 * i for i in range(len(tmp_df))],
         loc=1,
     )
+    tmp_df["density"] = tmp_df["density"] / 1000
     tmp_df.to_csv("log-npt.txt", index=False, sep=" ")
     for prop in poi:
-        sample_job(job, filename="log-npt.txt", variable=poi[prop])
-        write_subsampled_values(
-            job, property=poi[prop], property_filename="log-npt.txt"
+        sample_job(
+            job, filename="log-npt.txt", variable=poi[prop], ensemble="npt"
         )
+        get_subsampled_values(
+            job,
+            property=poi[prop],
+            property_filename="log-npt.txt",
+            ensemble="npt",
+        )
+
+    # Convert trr file to gsd with mdtraj
+    traj = mdtraj.load("npt_prod.trr", top="npt_prod.gro")
+    traj.save("trajectory-npt.gsd")
 
 
 @Project.operation
@@ -274,14 +331,17 @@ def sample_npt_properties(job):
 @Project.pre(lambda j: j.isfile("nvt_prod.gro"))
 @Project.pre(lambda j: equil_status(j, "nvt_prod", "Potential"))
 @Project.pre(lambda j: equil_status(j, "nvt_prod", "Pressure"))
+@Project.post(lambda j: j.isfile("log-nvt.txt"))
+@Project.post(lambda j: j.isfile("trajectory-nvt.gsd"))
 @flow.with_job
 def sample_nvt_properties(job):
     """Sample properties of interest from nvt edr."""
+    import mdtraj
     import pandas as pd
 
     from reproducibility_project.src.analysis.sampler import (
+        get_subsampled_values,
         sample_job,
-        write_subsampled_values,
     )
 
     p = pathlib.Path(job.workspace())
@@ -306,15 +366,26 @@ def sample_nvt_properties(job):
     )
     tmp_df.to_csv("log-nvt.txt", index=False, sep=" ")
     for prop in poi:
-        sample_job(job, filename="log-nvt.txt", variable=poi[prop])
-        write_subsampled_values(
-            job, property=poi[prop], property_filename="log-nvt.txt"
+        sample_job(
+            job, filename="log-nvt.txt", variable=poi[prop], ensemble="nvt"
         )
+        get_subsampled_values(
+            job,
+            property=poi[prop],
+            property_filename="log-nvt.txt",
+            ensemble="nvt",
+        )
+
+    # Convert trr file to gsd with mdtraj
+    traj = mdtraj.load("nvt_prod.trr", top="nvt_prod.gro")
+    traj.save("trajectory-nvt.gsd")
 
 
 def _mdrun_str(op):
     """Output an mdrun string for arbitrary operation."""
-    msg = f"gmx mdrun -v -deffnm {op} -s {op}.tpr -cpi {op}.cpt -nt 16"
+    msg = (
+        f"gmx mdrun -v -deffnm {op} -s {op}.tpr -cpi {op}.cpt -nt 16 -gpu_id 0"
+    )
     return msg
 
 

@@ -47,15 +47,16 @@ class Grid(DefaultSlurmEnvironment):  # Grid(StandardEnvironment):
 # set binary path to gomc binary files (the bin folder).
 # If the gomc binary files are callable directly from the terminal without a path,
 # please just enter and empty string (i.e., "" or '')
-gomc_binary_path = "/wsu/home/hf/hf68/hf6839/GOMC_dev_9_25_21/bin"
+# gomc_binary_path = "/wsu/home/hf/hf68/hf6839/GOMC_dev_2_22_22/bin"
+gomc_binary_path = "/home/brad/Programs/GOMC/GOMC_dev_2_22_22/bin"
 
 # number of MC cycles
-MC_cycles_melt_equilb_NVT = 5 * 10 ** 3  # set value for paper = 5 * 10 ** 3
-MC_cycles_equilb_NVT = 5 * 10 ** 3  # set value for paper = 5 * 10 ** 3
+MC_cycles_melt_equilb_NVT = 5 * 10**3  # set value for paper = 5 * 10 ** 3
+MC_cycles_equilb_NVT = 5 * 10**3  # set value for paper = 5 * 10 ** 3
 MC_cycles_equilb_design_ensemble = (
-    40 * 10 ** 3
+    40 * 10**3
 )  # set value for paper = 40 * 10 ** 3
-MC_cycles_production = 120 * 10 ** 3  # set value for paper = 120 * 10 ** 3
+MC_cycles_production = 120 * 10**3  # set value for paper = 120 * 10 ** 3
 
 output_data_every_X_MC_cycles = 10  # set value for paper = 10
 
@@ -531,7 +532,13 @@ def part_3c_output_equilb_design_ensemble_started(job):
                         ]["output_name_control_file_name"],
                     )
                 else:
-                    return False
+                    return gomc_simulation_started(
+                        job,
+                        job.doc.equilb_design_ensemble_dict[
+                            str(job.doc.equilb_design_ensemble_max_number - 1)
+                        ]["output_name_control_file_name"],
+                    )
+
             else:
                 return False
         elif job.doc.equilb_design_ensemble_max_number_under_limit is False:
@@ -548,26 +555,8 @@ def part_3c_output_equilb_design_ensemble_started(job):
 def part_3d_output_production_run_started(job):
     """Check to see if the production run (set temperature) gomc simulation is started."""
     try:
+        return gomc_simulation_started(job, production_control_file_name_str)
 
-        if job.isfile(
-            "out_{}.dat".format(
-                job.doc.production_run_ensemble_dict[
-                    str(job.doc.equilb_design_ensemble_number)
-                ]["output_name_control_file_name"]
-            )
-        ):
-            if job.doc.equilb_design_ensemble_max_number_under_limit is True:
-                return gomc_simulation_started(
-                    job,
-                    job.doc.production_run_ensemble_dict[
-                        str(job.doc.equilb_design_ensemble_number)
-                    ]["output_name_control_file_name"],
-                )
-            else:
-                return False
-
-        else:
-            return False
     except:
         return False
 
@@ -643,8 +632,13 @@ def part_4c_job_equilb_design_ensemble_completed_properly(job):
                     str(job.doc.equilb_design_ensemble_number)
                 ]["output_name_control_file_name"],
             )
-        elif job.doc.equilb_design_ensemble_max_number_under_limit is False:
-            return True
+        else:
+            return gomc_sim_completed_properly(
+                job,
+                job.doc.equilb_design_ensemble_dict[
+                    str(job.doc.equilb_design_ensemble_max_number - 1)
+                ]["output_name_control_file_name"],
+            )
     except:
         return False
 
@@ -689,7 +683,7 @@ def build_charmm(job, write_files=True):
     }
     Molecule_ResName_List = [job.sp.molecule]
 
-    if job.sp.molecule in ["waterSPCE"]:
+    if job.sp.molecule in ["waterSPCE", "benzeneUA"]:
         gomc_fix_bonds_angles_list = Molecule_ResName_List
     else:
         gomc_fix_bonds_angles_list = None
@@ -839,14 +833,14 @@ def build_psf_pdb_ff_gomc_conf(job):
             RotFreq = (None,)
             RegrowthFreq = (None,)
 
-        elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+        elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.34,)
             RotFreq = (0.33,)
             RegrowthFreq = (0.33,)
 
-        elif job.sp.molecule in ["waterSPCE"]:
+        elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.5,)
@@ -893,14 +887,14 @@ def build_psf_pdb_ff_gomc_conf(job):
             RotFreq = (None,)
             RegrowthFreq = (None,)
 
-        elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+        elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.34,)
             RotFreq = (0.33,)
             RegrowthFreq = (0.33,)
 
-        elif job.sp.molecule in ["waterSPCE"]:
+        elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.5,)
@@ -1084,14 +1078,14 @@ def build_psf_pdb_ff_gomc_conf(job):
             RotFreq = (None,)
             RegrowthFreq = (None,)
 
-        elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+        elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.34,)
             RotFreq = (0.33,)
             RegrowthFreq = (0.33,)
 
-        elif job.sp.molecule in ["waterSPCE"]:
+        elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.5,)
@@ -1138,14 +1132,14 @@ def build_psf_pdb_ff_gomc_conf(job):
             RotFreq = (None,)
             RegrowthFreq = (None,)
 
-        elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+        elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.34,)
             RotFreq = (0.33,)
             RegrowthFreq = (0.33,)
 
-        elif job.sp.molecule in ["waterSPCE"]:
+        elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
             VolFreq = (None,)
             SwapFreq = (None,)
             DisFreq = (0.5,)
@@ -1354,14 +1348,14 @@ def build_psf_pdb_ff_gomc_conf(job):
                 RotFreq = (None,)
                 RegrowthFreq = (None,)
 
-            elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+            elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (None,)
                 DisFreq = (0.33,)
                 RotFreq = (0.33,)
                 RegrowthFreq = (0.33,)
 
-            elif job.sp.molecule in ["waterSPCE"]:
+            elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (None,)
                 DisFreq = (0.49,)
@@ -1408,14 +1402,14 @@ def build_psf_pdb_ff_gomc_conf(job):
                 RotFreq = (None,)
                 RegrowthFreq = (None,)
 
-            elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+            elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (0.20,)
                 DisFreq = (0.27,)
                 RotFreq = (0.26,)
                 RegrowthFreq = (0.26,)
 
-            elif job.sp.molecule in ["waterSPCE"]:
+            elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (0.20,)
                 DisFreq = (0.40,)
@@ -1617,14 +1611,14 @@ def build_psf_pdb_ff_gomc_conf(job):
                 RotFreq = (None,)
                 RegrowthFreq = (None,)
 
-            elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+            elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (None,)
                 DisFreq = (0.33,)
                 RotFreq = (0.33,)
                 RegrowthFreq = (0.33,)
 
-            elif job.sp.molecule in ["waterSPCE"]:
+            elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (None,)
                 DisFreq = (0.49,)
@@ -1671,14 +1665,14 @@ def build_psf_pdb_ff_gomc_conf(job):
                 RotFreq = (None,)
                 RegrowthFreq = (None,)
 
-            elif job.sp.molecule in ["pentaneUA", "benzeneUA", "ethanolAA"]:
+            elif job.sp.molecule in ["pentaneUA", "ethanolAA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (0.20,)
                 DisFreq = (0.27,)
                 RotFreq = (0.26,)
                 RegrowthFreq = (0.26,)
 
-            elif job.sp.molecule in ["waterSPCE"]:
+            elif job.sp.molecule in ["waterSPCE", "benzeneUA"]:
                 VolFreq = (0.01,)
                 SwapFreq = (0.20,)
                 DisFreq = (0.40,)
@@ -2176,18 +2170,26 @@ def run_equilb_ensemble_gomc_command(job):
             )
             os.waitpid(exec_run_command.pid, 0)  # os.WSTOPPED) # 0)
 
-            test_pymbar_stabilized_equilb_design_ensemble(job)
+            # test if the simulation actualy finished before checkin and adding 1 to the equilb counter
+            if gomc_sim_completed_properly(
+                job,
+                job.doc.equilb_design_ensemble_dict[
+                    str(job.doc.equilb_design_ensemble_number)
+                ]["output_name_control_file_name"],
+            ):
 
-            if job.doc.stable_equilb_design_ensemble is False:
-                # need to add equilb_design_ensemble_number by 1 so it is fixed to run the correct job
-                # so it is rerun if restarted
-                job.doc.equilb_design_ensemble_number += 1
+                test_pymbar_stabilized_equilb_design_ensemble(job)
 
-                if (
-                    job.doc.equilb_design_ensemble_number
-                    >= job.doc.equilb_design_ensemble_max_number
-                ):
-                    job.doc.stable_equilb_design_ensemble = True
+                if job.doc.stable_equilb_design_ensemble is False:
+                    # need to add equilb_design_ensemble_number by 1 so it is fixed to run the correct job
+                    # so it is rerun if restarted
+                    job.doc.equilb_design_ensemble_number += 1
+
+                    if (
+                        job.doc.equilb_design_ensemble_number
+                        >= job.doc.equilb_design_ensemble_max_number
+                    ):
+                        job.doc.stable_equilb_design_ensemble = True
 
 
 # ******************************************************

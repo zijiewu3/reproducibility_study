@@ -3,11 +3,15 @@
 *.png
 *.xyz
 *.pdb
+*.ipynb
 
 # Signac
 .signac_sp_cache.json.gz
 signac_project_document.json
-
+signac_statepoints.json
+workspace*
+water_*
+ethanol_*
 # MacOS/finder file
 .DS_Store
 
@@ -152,6 +156,10 @@ view/
 slurm*
 *.out
 *.err
+rclone.sh
 
 # UGE
 *.o*
+
+#Local analysis
+analysis_data/

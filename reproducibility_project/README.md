@@ -22,10 +22,22 @@ python src/engines/hoomd/project.py -h
 ```
 or check out the [FlowProject documentation](https://docs.signac.io/en/latest/flow-project.html).
 
+## Simulation Analysis
+
 Finally after running or submitting the engine-specific simulation projects, to run the analysis of the simulation output you would run:
 ```bash
 python project-analysis.py run
 ```
+
+**NOTE The order in which the simulation project should be ran is as follows**
+1. Change into the `aggregate_summary` subdirectory and initialize its workspace
+	* `cd aggregate_summary; python aggregate_init.py; cd ..`
+2. Check the status of the `project-analysis.py` and observe any available operations
+	* `python project-analysis.py status`
+3. Run the first round of analysis operations
+	* `python project-analysis.py run`
+4. Continue steps **2-3** until no operations remain
+
 
 ## Dashboard instructions
 [Signac-dashboard](https://docs.signac.io/projects/dashboard/en/latest/) is a convenient application for displaying a signac project.
@@ -45,6 +57,8 @@ This will start the flask app and output the following message to the screen:
  * Running on http://localhost:8888/ (Press CTRL+C to quit)
 ```
 Copy and paste the server and port address (`http://localhost:8888/`) into your browser to view the dashboard.
+
+**Note: For unit treatment see reference information in the Reproducibility Study [Project Board](https://github.com/mosdef-hub/reproducibility_study/projects/1)**
 
 ## Layout
 
