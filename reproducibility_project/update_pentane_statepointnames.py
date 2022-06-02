@@ -12,6 +12,15 @@ def update_MD_statepoints(project):
             statepoint.pop("molecule")
             statepoint["molecule"] = "pentaneUA-flexible_bonds"
             job.update_statepoint(statepoint)
+
+def update_ethanolAA_statepoints(project):
+    for job in project:
+        if job.sp.molecule == "ethanolAA" and job.sp.engine == "lammps-UD":
+            #print(job.id, job.sp)
+            statepoint = copy.copy(job.sp)
+            statepoint.pop("molecule")
+            statepoint["molecule"] = "ethanolAA-wo-shake"
+            job.update_statepoint(statepoint)
         
 def update_MC_statepoints(project):
     for job in project:
@@ -25,10 +34,12 @@ def update_MC_statepoints(project):
 def main():
     p = signac.get_project()
     print(p)
-    print("Updating MD pentaneUA job name to pentaneUA-flexible_bonds")
-    update_MD_statepoints(p)
-    print("Updating MC pentaneUA job name to pentaneUA-constrain_bonds")
-    update_MC_statepoints(p)
+#    print("Updating MD pentaneUA job name to pentaneUA-flexible_bonds")
+#    update_MD_statepoints(p)
+#    print("Updating MC pentaneUA job name to pentaneUA-constrain_bonds")
+#    update_MC_statepoints(p)
+    update_ethanolAA_statepoints(p)
+    print("Updated ethanolAA sps for UD")
     
 
 

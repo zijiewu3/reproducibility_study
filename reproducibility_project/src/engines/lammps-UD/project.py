@@ -179,7 +179,7 @@ def lammps_cp_files(job):
 def lammps_em_nvt(job):
     """Run energy minimization and nvt ensemble."""
     if job.sp.molecule == "ethanolAA":
-        tstep = 1.0
+        tstep = 2.0
     else:
         tstep = 2.0
     in_script_name = "in.minimize"
@@ -188,11 +188,11 @@ def lammps_em_nvt(job):
         add_pppm(in_script_name,12)
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
-    if job.sp.molecule == 'pentaneUA':
-        enforce_rigid(job,5)
     if job.sp.molecule == 'benzeneUA':
         modify_engine_scripts(in_script_name,16,'change_box all ortho\n')
         enforce_rigid(job,6)
+    if job.sp.molecule in ["pentaneUA-flexible_bonods"]:
+        modify_engine_scripts(in_script_name,28,'pair_modify mix arithmetic\n')
 
     r_cut = job.sp.r_cut * 10
     modify_submit_scripts(in_script_name, job.id)
@@ -211,7 +211,7 @@ def lammps_em_nvt(job):
 def lammps_equil_npt(job):
     """Run npt ensemble equilibration."""
     if job.sp.molecule == "ethanolAA":
-        tstep = 1.0
+        tstep = 2.0
     else:
         tstep = 2.0
     in_script_name = "in.equilibration"
@@ -224,6 +224,8 @@ def lammps_equil_npt(job):
         add_14coul(in_script_name,28)
     if job.sp.molecule in ["benzeneUA"]:
         add_rigid_npt(in_script_name,40)
+    if job.sp.molecule in ["pentaneUA-flexible_bonods"]:
+        modify_engine_scripts(in_script_name,28,'pair_modify mix arithmetic\n')
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
@@ -240,7 +242,7 @@ def lammps_equil_npt(job):
 def lammps_prod_npt(job):
     """Run npt ensemble production."""
     if job.sp.molecule == "ethanolAA":
-        tstep = 1.0
+        tstep = 2.0
     else:
         tstep = 2.0
     in_script_name = "in.production-npt"
@@ -253,6 +255,8 @@ def lammps_prod_npt(job):
         add_14coul(in_script_name,28)
     if job.sp.molecule in ["benzeneUA"]:
         add_rigid_npt(in_script_name,41)
+    if job.sp.molecule in ["pentaneUA-flexible_bonods"]:
+        modify_engine_scripts(in_script_name,28,'pair_modify mix arithmetic\n')
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
@@ -269,7 +273,7 @@ def lammps_prod_npt(job):
 def lammps_prod_nvt(job):
     """Run npt ensemble production."""
     if job.sp.molecule == "ethanolAA":
-        tstep = 1.0
+        tstep = 2.0
     else:
         tstep = 2.0
     in_script_name = "in.production-nvt"
@@ -280,8 +284,10 @@ def lammps_prod_nvt(job):
         modify_engine_scripts(in_script_name,7,'pair_style lj/cut/coul/long ${rcut}\n')
     if job.sp.molecule in ["ethanolAA"]:
         add_14coul(in_script_name,28)
-    if job.sp.molecule in ["pentaneUA", "benzeneUA"]:
+    if job.sp.molecule in ["benzeneUA"]:
         add_rigid_nvt(in_script_name,41)
+    if job.sp.molecule in ["pentaneUA-flexible_bonods"]:
+        modify_engine_scripts(in_script_name,28,'pair_modify mix arithmetic\n')
     r_cut = job.sp.r_cut * 10
     pass_lrc = "yes"
     pass_shift = "no"
